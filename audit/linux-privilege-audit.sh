@@ -10,17 +10,18 @@ mkdir -p "$OUT"
 need_root=false
 [[ ${EUID:-$(id -u)} -ne 0 ]] && need_root=true
 
-safe_count() { find "$@" 2>/dev/null | wc -l | tr -d ' '; }
-json_escape() { python3 -c 'import json,sys; print(json.dumps(sys.stdin.read()))'; }
+SCAN_ROOTS=(/bin /sbin /usr/bin /usr/sbin /usr/local/bin /usr/local/sbin)
+EXISTING_ROOTS=()
+for root in "${SCAN_ROOTS[@]}"; do [[ -e "$root" ]] && EXISTING_ROOTS+=("$root"); done
 
 find /etc -xdev -printf '%y|%m|%u|%g|%s|%TY-%Tm-%TdT%TH:%TM:%TS|%p|%l\n' 2>/dev/null | sort > "$OUT/etc-metadata.txt"
 find /etc -xdev -type f -print0 2>/dev/null | sort -z | xargs -0 -r sha256sum 2>/dev/null > "$OUT/etc-sha256.txt" || true
 find /etc -xdev -perm -0002 -printf '%m|%u|%g|%p\n' 2>/dev/null | sort > "$OUT/etc-world-writable.txt"
 find /etc -xdev -type f -perm /111 -printf '%m|%u|%g|%p\n' 2>/dev/null | sort > "$OUT/etc-executable-files.txt"
-find / -xdev -type f \( -perm -4000 -o -perm -2000 \) -printf '%m|%u|%g|%p\n' 2>/dev/null | sort > "$OUT/privileged-binaries.txt"
+find "${EXISTING_ROOTS[@]}" -xdev -type f \( -perm -4000 -o -perm -2000 \) -printf '%m|%u|%g|%p\n' 2>/dev/null | sort -u > "$OUT/privileged-binaries.txt"
 
-if command -v getcap >/dev/null 2>&1; then
-  getcap -r / 2>/dev/null | sort > "$OUT/file-capabilities.txt" || true
+if command -v getcap >/dev/null 2>&1 && ((${#EXISTING_ROOTS[@]})); then
+  timeout 60s getcap -r "${EXISTING_ROOTS[@]}" 2>/dev/null | sort -u > "$OUT/file-capabilities.txt" || true
 else
   : > "$OUT/file-capabilities.txt"
 fi
@@ -34,17 +35,20 @@ fi
 } > "$OUT/admin-access.txt"
 
 {
-  echo '# systemd local units'; find /etc/systemd/system -type f -o -type l 2>/dev/null | sort
-  echo; echo '# cron'; find /etc/cron.d /etc/cron.daily /etc/cron.hourly /etc/cron.weekly /etc/cron.monthly -type f -printf '%m|%u|%g|%p\n' 2>/dev/null | sort
-  echo; echo '# ld.so.preload'; [[ -f /etc/ld.so.preload ]] && cat /etc/ld.so.preload || echo 'not present'
+  echo '# systemd local units'
+  find /etc/systemd/system \( -type f -o -type l \) 2>/dev/null | sort
+  echo; echo '# cron'
+  find /etc/cron.d /etc/cron.daily /etc/cron.hourly /etc/cron.weekly /etc/cron.monthly -type f -printf '%m|%u|%g|%p\n' 2>/dev/null | sort
+  echo; echo '# ld.so.preload'
+  [[ -f /etc/ld.so.preload ]] && cat /etc/ld.so.preload || echo 'not present'
 } > "$OUT/persistence-and-loader.txt"
 
 if command -v dpkg >/dev/null 2>&1; then
-  dpkg --verify > "$OUT/package-integrity.txt" 2>&1 || true
+  timeout 120s dpkg --verify > "$OUT/package-integrity.txt" 2>&1 || true
 elif command -v rpm >/dev/null 2>&1; then
-  rpm -Va > "$OUT/package-integrity.txt" 2>&1 || true
+  timeout 120s rpm -Va > "$OUT/package-integrity.txt" 2>&1 || true
 elif command -v pacman >/dev/null 2>&1; then
-  pacman -Qkk > "$OUT/package-integrity.txt" 2>&1 || true
+  timeout 120s pacman -Qkk > "$OUT/package-integrity.txt" 2>&1 || true
 else
   echo 'No supported package verifier found.' > "$OUT/package-integrity.txt"
 fi
@@ -55,35 +59,37 @@ PRIV_BIN=$(wc -l < "$OUT/privileged-binaries.txt" | tr -d ' ')
 CAPS=$(wc -l < "$OUT/file-capabilities.txt" | tr -d ' ')
 PKG_CHANGES=$(grep -cv '^$' "$OUT/package-integrity.txt" || true)
 RECENT_ETC=$(find /etc -xdev -type f -mtime -30 2>/dev/null | wc -l | tr -d ' ')
+ROOT_COMPLETE=$([[ "$need_root" == false ]] && echo true || echo false)
 
-cat > "$OUT/report.json" <<JSON
-{
-  "schema_version": "1.0",
-  "generated_at": "$(date -u +%FT%TZ)",
-  "host": "${HOST}",
-  "root_complete": $([[ "$need_root" == false ]] && echo true || echo false),
-  "metrics": {
-    "world_writable_etc": ${WORLD_WRITABLE},
-    "executable_files_etc": ${ETC_EXEC},
-    "privileged_binaries": ${PRIV_BIN},
-    "file_capabilities": ${CAPS},
-    "package_integrity_findings": ${PKG_CHANGES},
-    "recent_etc_changes_30d": ${RECENT_ETC}
-  },
-  "artifacts": [
-    "etc-metadata.txt",
-    "etc-sha256.txt",
-    "etc-world-writable.txt",
-    "etc-executable-files.txt",
-    "privileged-binaries.txt",
-    "file-capabilities.txt",
-    "admin-access.txt",
-    "persistence-and-loader.txt",
-    "package-integrity.txt"
-  ],
-  "notice": "Indicators require human review and are not proof of malicious activity."
+python3 - "$OUT/report.json" "$HOST" "$ROOT_COMPLETE" "$WORLD_WRITABLE" "$ETC_EXEC" "$PRIV_BIN" "$CAPS" "$PKG_CHANGES" "$RECENT_ETC" <<'PY'
+import json, sys
+from datetime import datetime, timezone
+path, host, root_complete, ww, ex, pb, caps, pkg, recent = sys.argv[1:]
+report = {
+    "schema_version": "1.0",
+    "generated_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+    "host": host,
+    "root_complete": root_complete == "true",
+    "metrics": {
+        "world_writable_etc": int(ww),
+        "executable_files_etc": int(ex),
+        "privileged_binaries": int(pb),
+        "file_capabilities": int(caps),
+        "package_integrity_findings": int(pkg),
+        "recent_etc_changes_30d": int(recent),
+    },
+    "artifacts": [
+        "etc-metadata.txt", "etc-sha256.txt", "etc-world-writable.txt",
+        "etc-executable-files.txt", "privileged-binaries.txt",
+        "file-capabilities.txt", "admin-access.txt",
+        "persistence-and-loader.txt", "package-integrity.txt"
+    ],
+    "notice": "Indicators require human review and are not proof of malicious activity."
 }
-JSON
+with open(path, "w", encoding="utf-8") as fh:
+    json.dump(report, fh, indent=2)
+    fh.write("\n")
+PY
 
-( cd "$OUT" && sha256sum ./* > REPORT-SHA256SUMS.txt )
-printf 'Audit complete: %s\nOpen docs/index.html and load %s/report.json\n' "$OUT" "$OUT"
+( cd "$OUT" && find . -maxdepth 1 -type f ! -name REPORT-SHA256SUMS.txt -print0 | sort -z | xargs -0 sha256sum > REPORT-SHA256SUMS.txt )
+printf 'Audit complete: %s\nLoad %s/report.json in the JusticeForMe dashboard.\n' "$OUT" "$OUT"
