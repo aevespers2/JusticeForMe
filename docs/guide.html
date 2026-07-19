@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="JusticeForMe project overview, architecture, report contract, developer onboarding, security guidance, and operations documentation.">
+  <title>JusticeForMe Project Guide</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <main class="shell" id="content">
+    <nav class="site-nav" aria-label="Primary navigation">
+      <a href="index.html">Audit dashboard</a>
+      <a href="guide.html" aria-current="page">Project guide</a>
+      <a href="https://github.com/aevespers2/JusticeForMe">Repository</a>
+    </nav>
+
+    <header class="hero">
+      <p class="eyebrow">JusticeForMe documentation</p>
+      <h1>Read-only Linux audit, local evidence, human review</h1>
+      <p class="lede">JusticeForMe inventories selected Linux privilege and configuration indicators, preserves detailed local artifacts, and renders a compact summary in a static browser dashboard. It does not remediate systems, upload reports, determine attribution, or convert indicators into proof.</p>
+      <div class="hero-actions">
+        <a class="button-link primary" href="index.html">Open the dashboard</a>
+        <a class="button-link" href="#onboarding">Developer onboarding</a>
+      </div>
+    </header>
+
+    <section class="callout" aria-labelledby="safety-title">
+      <div>
+        <p class="eyebrow">Safety boundary</p>
+        <h2 id="safety-title">Use only on systems you are authorized to inspect</h2>
+      </div>
+      <p>Generated artifacts may contain hostnames, account names, permission relationships, package deviations, and configuration history. Keep report bundles private, preserve originals, and compare findings with trusted baselines and approved change records.</p>
+    </section>
+
+    <section aria-labelledby="overview-title">
+      <div class="section-heading">
+        <p class="eyebrow">Project overview</p>
+        <h2 id="overview-title">A deliberately small evidence pipeline</h2>
+      </div>
+      <div class="feature-grid">
+        <article class="panel feature-card">
+          <span class="step">01</span>
+          <h3>Collect</h3>
+          <p>A Bash script reads selected `/etc`, privilege, capability, administrative-access, persistence, and package-integrity state.</p>
+        </article>
+        <article class="panel feature-card">
+          <span class="step">02</span>
+          <h3>Preserve</h3>
+          <p>The collector writes a timestamped local bundle with detailed artifacts, a compact JSON summary, and a SHA-256 manifest.</p>
+        </article>
+        <article class="panel feature-card">
+          <span class="step">03</span>
+          <h3>Review</h3>
+          <p>The static dashboard reads a user-selected `report.json` locally and presents fixed heuristic priorities for human validation.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="panel documentation-map" aria-labelledby="map-title">
+      <div class="section-heading compact">
+        <p class="eyebrow">Documentation map</p>
+        <h2 id="map-title">Authoritative repository guides</h2>
+      </div>
+      <div class="link-grid">
+        <a href="https://github.com/aevespers2/JusticeForMe/blob/main/ARCHITECTURE.md"><strong>Architecture</strong><span>Components, data flow, trust boundaries, and failure modes</span></a>
+        <a href="https://github.com/aevespers2/JusticeForMe/blob/main/DESIGN.md"><strong>Design</strong><span>Collection semantics, thresholds, compatibility, and evidence model</span></a>
+        <a href="https://github.com/aevespers2/JusticeForMe/blob/main/SECURITY.md"><strong>Security</strong><span>Authorized use, sensitive output, and evidence handling</span></a>
+        <a href="https://github.com/aevespers2/JusticeForMe/blob/main/CONTRIBUTING.md"><strong>Contributing</strong><span>Developer setup, synthetic fixtures, and review checklist</span></a>
+        <a href="https://github.com/aevespers2/JusticeForMe/blob/main/taskchain.md"><strong>Task chain</strong><span>Ordered validation and governance work</span></a>
+        <a href="https://github.com/aevespers2/JusticeForMe/blob/main/release.md"><strong>Release readiness</strong><span>Evidence gates, approval criteria, and prohibited claims</span></a>
+      </div>
+    </section>
+
+    <section aria-labelledby="architecture-title">
+      <div class="section-heading">
+        <p class="eyebrow">Architecture</p>
+        <h2 id="architecture-title">Collection and interpretation remain separate</h2>
+      </div>
+      <figure class="architecture-figure panel">
+        <div class="flow-diagram" role="img" aria-label="An authorized Linux host is read by the local collector. The collector writes a local evidence bundle and report JSON. The user selects the report in the static browser dashboard, then performs human review against trusted baselines.">
+          <div class="flow-node"><small>Trust zone A</small><strong>Authorized Linux host</strong><span>Filesystem, accounts, capabilities, package metadata</span></div>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <div class="flow-node"><small>Local execution</small><strong>Read-only collector</strong><span>Bash commands with bounded scan roots</span></div>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <div class="flow-node"><small>Trust zone B</small><strong>Evidence bundle</strong><span>Artifacts, report.json, checksum manifest</span></div>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <div class="flow-node"><small>Trust zone C</small><strong>Static dashboard</strong><span>Local browser parsing, no backend</span></div>
+          <span class="flow-arrow" aria-hidden="true">→</span>
+          <div class="flow-node"><small>Decision boundary</small><strong>Human review</strong><span>Known-good baselines and approved changes</span></div>
+        </div>
+        <figcaption>The dashboard does not authenticate the report or verify the checksum manifest. It organizes attention; it does not establish compromise or attribution.</figcaption>
+      </figure>
+
+      <div class="two-column">
+        <article class="panel">
+          <h3>Collector boundary</h3>
+          <ul class="check-list">
+            <li>Reads selected live-system state</li>
+            <li>Writes only the chosen output directory</li>
+            <li>May require `sudo` for completeness</li>
+            <li>Does not modify permissions or services</li>
+            <li>Does not transmit data</li>
+          </ul>
+        </article>
+        <article class="panel">
+          <h3>Dashboard boundary</h3>
+          <ul class="check-list">
+            <li>Accepts schema version `1.0`</li>
+            <li>Reads a user-selected local JSON file</li>
+            <li>Displays six summary metrics</li>
+            <li>Uses fixed heuristic thresholds</li>
+            <li>Has no backend or report storage</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <section aria-labelledby="contract-title">
+      <div class="section-heading">
+        <p class="eyebrow">Report contract</p>
+        <h2 id="contract-title">Schema 1.0 at a glance</h2>
+      </div>
+      <div class="table-wrap panel" tabindex="0">
+        <table>
+          <thead>
+            <tr><th>Field</th><th>Meaning</th><th>Current use</th></tr>
+          </thead>
+          <tbody>
+            <tr><td><code>schema_version</code></td><td>Summary contract identifier</td><td>Must equal <code>1.0</code></td></tr>
+            <tr><td><code>generated_at</code></td><td>UTC collection timestamp</td><td>Displayed in local time</td></tr>
+            <tr><td><code>host</code></td><td>Short hostname</td><td>Displayed as report identity</td></tr>
+            <tr><td><code>root_complete</code></td><td>Whether collection ran as root</td><td>Signals likely completeness</td></tr>
+            <tr><td><code>metrics</code></td><td>Six integer summary counts</td><td>Drives cards and priorities</td></tr>
+            <tr><td><code>artifacts</code></td><td>Detailed file names</td><td>Rendered as inventory</td></tr>
+            <tr><td><code>notice</code></td><td>Human-review caution</td><td>Displayed below results</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="threshold-grid">
+        <article class="panel"><h3>World-writable `/etc`</h3><p><strong>Priority:</strong> one or more regular files or directories.</p></article>
+        <article class="panel"><h3>Executable `/etc` files</h3><p><strong>Review:</strong> above 5. <strong>Priority:</strong> 20 or more.</p></article>
+        <article class="panel"><h3>Privileged binaries</h3><p><strong>Review:</strong> above 20. <strong>Priority:</strong> 60 or more.</p></article>
+        <article class="panel"><h3>File capabilities</h3><p><strong>Review:</strong> above 5. <strong>Priority:</strong> 20 or more.</p></article>
+        <article class="panel"><h3>Package deviations</h3><p><strong>Review:</strong> one or more. <strong>Priority:</strong> 10 or more.</p></article>
+        <article class="panel"><h3>Recent `/etc` changes</h3><p><strong>Review:</strong> above 25. <strong>Priority:</strong> 100 or more.</p></article>
+      </div>
+      <p class="note">These are display thresholds, not risk probabilities, compliance controls, or compromise verdicts. Platform-specific baselines remain essential.</p>
+    </section>
+
+    <section id="onboarding" aria-labelledby="onboarding-title">
+      <div class="section-heading">
+        <p class="eyebrow">Developer onboarding</p>
+        <h2 id="onboarding-title">Review, validate, then change</h2>
+      </div>
+      <div class="timeline panel">
+        <div><span>1</span><h3>Read the contracts</h3><p>Start with README, architecture, design, security, task chain, release, and changelog.</p></div>
+        <div><span>2</span><h3>Inspect the script</h3><p>Review every command before running it and use only an authorized disposable test host.</p></div>
+        <div><span>3</span><h3>Run syntax checks</h3><p>Use <code>bash -n</code>; run ShellCheck when available and record the tool version.</p></div>
+        <div><span>4</span><h3>Use synthetic reports</h3><p>Exercise dashboard boundaries without exposing real host data.</p></div>
+        <div><span>5</span><h3>Reconcile documentation</h3><p>Update task chain, release gates, changelog, and diagrams when behavior changes.</p></div>
+      </div>
+      <div class="code-panel">
+        <div class="code-title">Local documentation and dashboard preview</div>
+        <pre><code>git clone https://github.com/aevespers2/JusticeForMe.git
+cd JusticeForMe
+bash -n audit/linux-privilege-audit.sh
+python3 -m http.server 8000 --directory docs</code></pre>
+      </div>
+    </section>
+
+    <section aria-labelledby="operations-title">
+      <div class="section-heading">
+        <p class="eyebrow">Operations and recovery</p>
+        <h2 id="operations-title">Preserve first; analyze a copy</h2>
+      </div>
+      <div class="two-column">
+        <article class="panel">
+          <h3>Collection runbook</h3>
+          <ol>
+            <li>Confirm written authorization and scope.</li>
+            <li>Record host, operator, UTC time source, and exact commit.</li>
+            <li>Select a protected new output directory.</li>
+            <li>Run the reviewed collector at the approved privilege level.</li>
+            <li>Preserve terminal output and verify expected artifacts.</li>
+            <li>Verify the checksum manifest from a trusted environment.</li>
+            <li>Protect the original and analyze a copy.</li>
+          </ol>
+        </article>
+        <article class="panel">
+          <h3>Partial or interrupted collection</h3>
+          <ol>
+            <li>Do not present the directory as complete evidence.</li>
+            <li>Preserve it if the interruption itself matters.</li>
+            <li>Record the failure point and environment.</li>
+            <li>Correct capacity, permission, or tool issues.</li>
+            <li>Run again to a new directory; never overwrite the first attempt.</li>
+          </ol>
+        </article>
+      </div>
+
+      <article class="panel incident-card">
+        <h3>Accidental public report publication</h3>
+        <p>Treat exposure as a security incident. Remove the public artifact and Pages reference, preserve repository and deployment evidence, rotate any exposed secrets, assess disclosed identities and host details, notify the responsible owner through an approved channel, and record corrective actions. Deleting a commit alone may not remove cached or forked copies.</p>
+      </article>
+    </section>
+
+    <section aria-labelledby="scope-title">
+      <div class="section-heading">
+        <p class="eyebrow">Scope guardrails</p>
+        <h2 id="scope-title">Architectural clarification is required before expansion</h2>
+      </div>
+      <div class="guardrail-grid">
+        <div class="guardrail"><strong>No remote execution</strong><span>No agent, SSH orchestration, or command channel exists.</span></div>
+        <div class="guardrail"><strong>No remediation</strong><span>No permission, account, file, service, or package changes.</span></div>
+        <div class="guardrail"><strong>No hosted evidence</strong><span>No upload, storage, identity, retention, or collaboration service.</span></div>
+        <div class="guardrail"><strong>No attribution</strong><span>No malware, actor, intent, or misconduct determination.</span></div>
+        <div class="guardrail"><strong>No certification claim</strong><span>No default court admissibility, compliance certification, or forensic assurance.</span></div>
+        <div class="guardrail"><strong>No universal baseline</strong><span>Thresholds require platform and environment context.</span></div>
+      </div>
+    </section>
+
+    <footer>
+      <p><strong>JusticeForMe</strong> — transparent collection, local review, explicit limits.</p>
+      <p><a href="index.html">Dashboard</a> · <a href="https://github.com/aevespers2/JusticeForMe">Repository</a> · <a href="https://github.com/aevespers2/JusticeForMe/blob/main/release.md">Release readiness</a></p>
+    </footer>
+  </main>
+</body>
+</html>
