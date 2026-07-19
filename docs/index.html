@@ -3,24 +3,42 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="description" content="Load a locally generated JusticeForMe Linux audit report and review summary indicators in your browser.">
   <title>JusticeForMe Linux Audit Dashboard</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <main class="shell">
-    <header>
+  <a class="skip-link" href="#content">Skip to content</a>
+  <main class="shell" id="content">
+    <nav class="site-nav" aria-label="Primary navigation">
+      <a href="index.html" aria-current="page">Audit dashboard</a>
+      <a href="guide.html">Project guide</a>
+      <a href="https://github.com/aevespers2/JusticeForMe">Repository</a>
+    </nav>
+
+    <header class="hero">
       <p class="eyebrow">JusticeForMe</p>
-      <h1>Linux Privilege & Configuration Audit</h1>
-      <p class="lede">Load a locally generated <code>report.json</code>. Analysis stays in your browser and is not uploaded by this page.</p>
+      <h1>Linux Privilege &amp; Configuration Audit</h1>
+      <p class="lede">Load a locally generated <code>report.json</code>. Analysis stays in your browser and is not uploaded by this page. Findings are review indicators, not proof of compromise or misconduct.</p>
+      <div class="hero-actions">
+        <a class="button-link" href="guide.html">Read the project guide</a>
+      </div>
     </header>
 
-    <section class="panel controls">
-      <label class="file-button">Choose report.json<input id="file" type="file" accept="application/json,.json"></label>
-      <button id="demo" type="button">Load demonstration data</button>
-      <span id="status">No report loaded</span>
+    <section class="panel controls" aria-labelledby="load-title">
+      <div class="control-copy">
+        <h2 id="load-title">Load a report</h2>
+        <p>Select the compact summary from a preserved JusticeForMe evidence bundle, or use synthetic demonstration data.</p>
+      </div>
+      <div class="control-actions">
+        <label class="file-button">Choose report.json<input id="file" type="file" accept="application/json,.json"></label>
+        <button id="demo" type="button">Load demonstration data</button>
+        <span id="status" role="status" aria-live="polite">No report loaded</span>
+      </div>
     </section>
 
-    <section id="summary" class="summary hidden">
+    <section id="summary" class="summary hidden" aria-labelledby="summary-title">
+      <h2 id="summary-title" class="visually-hidden">Report summary</h2>
       <div class="identity panel">
         <div><span>Host</span><strong id="host">—</strong></div>
         <div><span>Generated</span><strong id="generated">—</strong></div>
@@ -38,10 +56,30 @@
       <p id="notice" class="notice"></p>
     </section>
 
-    <section class="panel guidance">
-      <h2>Interpretation rules</h2>
+    <section class="panel guidance" aria-labelledby="interpretation-title">
+      <h2 id="interpretation-title">Interpretation rules</h2>
       <p>A finding is an indicator for investigation, not proof of misconduct. Compare hashes and package verification results against a trusted baseline, document chain of custody, and preserve the original host state.</p>
+      <ul class="check-list">
+        <li>Confirm whether the collector ran with sufficient privileges.</li>
+        <li>Review the detailed artifacts, not only the metric counts.</li>
+        <li>Compare with the same distribution, role, and approved configuration.</li>
+        <li>Verify <code>REPORT-SHA256SUMS.txt</code> before analysis.</li>
+        <li>Analyze a copy and protect the original report bundle.</li>
+      </ul>
     </section>
+
+    <section class="callout" aria-labelledby="privacy-title">
+      <div>
+        <p class="eyebrow">Privacy</p>
+        <h2 id="privacy-title">Keep generated evidence out of public repositories</h2>
+      </div>
+      <p>Reports can contain hostnames, account names, file paths, privilege relationships, and package deviations. Do not commit report bundles, attach them to public issues, or place them in the Pages directory.</p>
+    </section>
+
+    <footer>
+      <p><strong>JusticeForMe</strong> — transparent collection, local review, explicit limits.</p>
+      <p><a href="guide.html">Project guide</a> · <a href="https://github.com/aevespers2/JusticeForMe/blob/main/SECURITY.md">Security guidance</a> · <a href="https://github.com/aevespers2/JusticeForMe/blob/main/release.md">Release readiness</a></p>
+    </footer>
   </main>
   <script src="app.js"></script>
 </body>
