@@ -16,7 +16,7 @@ for root in "${SCAN_ROOTS[@]}"; do [[ -e "$root" ]] && EXISTING_ROOTS+=("$root")
 
 find /etc -xdev -printf '%y|%m|%u|%g|%s|%TY-%Tm-%TdT%TH:%TM:%TS|%p|%l\n' 2>/dev/null | sort > "$OUT/etc-metadata.txt"
 find /etc -xdev -type f -print0 2>/dev/null | sort -z | xargs -0 -r sha256sum 2>/dev/null > "$OUT/etc-sha256.txt" || true
-find /etc -xdev -perm -0002 -printf '%m|%u|%g|%p\n' 2>/dev/null | sort > "$OUT/etc-world-writable.txt"
+find /etc -xdev \( -type f -o -type d \) -perm -0002 -printf '%m|%u|%g|%p\n' 2>/dev/null | sort > "$OUT/etc-world-writable.txt"
 find /etc -xdev -type f -perm /111 -printf '%m|%u|%g|%p\n' 2>/dev/null | sort > "$OUT/etc-executable-files.txt"
 find "${EXISTING_ROOTS[@]}" -xdev -type f \( -perm -4000 -o -perm -2000 \) -printf '%m|%u|%g|%p\n' 2>/dev/null | sort -u > "$OUT/privileged-binaries.txt"
 
