@@ -36,9 +36,9 @@ fi
 
 {
   echo '# systemd local units'
-  find /etc/systemd/system \( -type f -o -type l \) 2>/dev/null | sort
+  { find /etc/systemd/system \( -type f -o -type l \) 2>/dev/null || true; } | sort
   echo; echo '# cron'
-  find /etc/cron.d /etc/cron.daily /etc/cron.hourly /etc/cron.weekly /etc/cron.monthly -type f -printf '%m|%u|%g|%p\n' 2>/dev/null | sort
+  { find /etc/cron.d /etc/cron.daily /etc/cron.hourly /etc/cron.weekly /etc/cron.monthly -type f -printf '%m|%u|%g|%p\n' 2>/dev/null || true; } | sort
   echo; echo '# ld.so.preload'
   [[ -f /etc/ld.so.preload ]] && cat /etc/ld.so.preload || echo 'not present'
 } > "$OUT/persistence-and-loader.txt"
