@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>JusticeForMe Linux Audit Dashboard</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <p class="eyebrow">JusticeForMe</p>
+      <h1>Linux Privilege & Configuration Audit</h1>
+      <p class="lede">Load a locally generated <code>report.json</code>. Analysis stays in your browser and is not uploaded by this page.</p>
+    </header>
+
+    <section class="panel controls">
+      <label class="file-button">Choose report.json<input id="file" type="file" accept="application/json,.json"></label>
+      <button id="demo" type="button">Load demonstration data</button>
+      <span id="status">No report loaded</span>
+    </section>
+
+    <section id="summary" class="summary hidden">
+      <div class="identity panel">
+        <div><span>Host</span><strong id="host">—</strong></div>
+        <div><span>Generated</span><strong id="generated">—</strong></div>
+        <div><span>Root-complete</span><strong id="rootComplete">—</strong></div>
+      </div>
+      <div id="cards" class="cards"></div>
+      <section class="panel">
+        <h2>Prioritized review</h2>
+        <ol id="priorities"></ol>
+      </section>
+      <section class="panel">
+        <h2>Collected artifacts</h2>
+        <ul id="artifacts" class="artifact-list"></ul>
+      </section>
+      <p id="notice" class="notice"></p>
+    </section>
+
+    <section class="panel guidance">
+      <h2>Interpretation rules</h2>
+      <p>A finding is an indicator for investigation, not proof of misconduct. Compare hashes and package verification results against a trusted baseline, document chain of custody, and preserve the original host state.</p>
+    </section>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
