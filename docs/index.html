@@ -10,8 +10,11 @@
   <main class="shell">
     <header>
       <p class="eyebrow">JusticeForMe</p>
-      <h1>Linux Privilege & Configuration Audit</h1>
+      <h1>Linux Privilege &amp; Configuration Audit</h1>
       <p class="lede">Load a locally generated <code>report.json</code>. Analysis stays in your browser and is not uploaded by this page.</p>
+      <nav class="guide-nav" aria-label="Project documentation">
+        <a href="guide.html">Project, architecture, and operations guide</a>
+      </nav>
     </header>
 
     <section class="panel controls">
@@ -41,6 +44,7 @@
     <section class="panel guidance">
       <h2>Interpretation rules</h2>
       <p>A finding is an indicator for investigation, not proof of misconduct. Compare hashes and package verification results against a trusted baseline, document chain of custody, and preserve the original host state.</p>
+      <p>Dashboard thresholds are fixed review heuristics. They are not malware verdicts, compliance decisions, attribution, or evidence that every supported check completed successfully.</p>
     </section>
   </main>
   <script src="app.js"></script>

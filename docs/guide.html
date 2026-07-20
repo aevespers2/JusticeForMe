@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>JusticeForMe Project Guide</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="shell guide">
+    <header>
+      <p class="eyebrow">JusticeForMe documentation</p>
+      <h1>Read-only Linux audit architecture and integration guide</h1>
+      <p class="lede">JusticeForMe collects a bounded local inventory of Linux privilege and configuration surfaces. It does not remediate the host, upload reports, or prove that an indicator is malicious.</p>
+      <nav class="guide-nav" aria-label="Documentation sections">
+        <a href="index.html">Audit dashboard</a>
+        <a href="#architecture">Architecture</a>
+        <a href="#contract">Report contract</a>
+        <a href="#operations">Operations</a>
+        <a href="#integration">Portfolio integration</a>
+        <a href="#development">Development</a>
+      </nav>
+    </header>
+
+    <section class="panel" id="purpose">
+      <h2>Purpose and boundaries</h2>
+      <p>The collector inventories selected <code>/etc</code> state, privileged binaries, Linux file capabilities, administrative access paths, persistence indicators, and package-integrity output. It writes a timestamped local evidence directory containing <code>report.json</code>, supporting artifacts, and a SHA-256 manifest.</p>
+      <p>The local dashboard accepts report schema <code>1.0</code> and applies fixed triage thresholds. Threshold labels are review aids—not compliance decisions, malware verdicts, attribution, or a comparison with a signed host baseline.</p>
+    </section>
+
+    <section class="panel" id="architecture">
+      <h2>Architecture</h2>
+      <ol>
+        <li>An authorized operator starts the collector on a Linux host.</li>
+        <li>The collector reads supported local host surfaces and writes evidence into the selected output directory.</li>
+        <li>Python serializes the compact report; the collector then creates a local SHA-256 manifest.</li>
+        <li>The operator selects <code>report.json</code> in the browser dashboard. Parsing remains local.</li>
+        <li>Any future Repository <code>0</code> integration must wrap the evidence in a versioned envelope before submitting a proposal to Repository <code>1</code>.</li>
+      </ol>
+      <div class="callout"><strong>Implemented:</strong> local read-only collection and local dashboard review. <strong>Proposed:</strong> device identity, evidence envelope, Repository 0 adapter, Repository 1 baseline comparison, capabilities, and remediation receipts.</div>
+    </section>
+
+    <section class="panel" id="contract">
+      <h2>Report contract</h2>
+      <table>
+        <thead><tr><th>Field</th><th>Meaning</th><th>Limitation</th></tr></thead>
+        <tbody>
+          <tr><td><code>schema_version</code></td><td>Dashboard compatibility identifier</td><td>Does not identify collector commit</td></tr>
+          <tr><td><code>generated_at</code></td><td>Local UTC generation time</td><td>Depends on host clock</td></tr>
+          <tr><td><code>host</code></td><td>Short hostname</td><td>Not authenticated device identity</td></tr>
+          <tr><td><code>root_complete</code></td><td>Collector ran with effective UID 0</td><td>Does not prove every check completed</td></tr>
+          <tr><td><code>metrics</code></td><td>Derived counts for triage</td><td>May include partial or ambiguous tool output</td></tr>
+          <tr><td><code>artifacts</code></td><td>Expected filenames</td><td>Not bound to hashes inside the JSON</td></tr>
+        </tbody>
+      </table>
+      <p>Breaking field or semantic changes require a new schema version. Transport, proposal, capability, and receipt envelopes remain separate contracts.</p>
+    </section>
+
+    <section class="panel" id="operations">
+      <h2>Operations and evidence preservation</h2>
+      <pre><code>sudo ./audit/linux-privilege-audit.sh /protected/path/justiceforme-run
+cd /protected/path/justiceforme-run
+sha256sum -c REPORT-SHA256SUMS.txt</code></pre>
+      <ul>
+        <li>Use only on systems you own or are authorized to inspect.</li>
+        <li>Record the exact source commit, script hash, platform, and tool versions.</li>
+        <li>Preserve the original evidence directory before annotation or redaction.</li>
+        <li>Do not upload raw private audit evidence to public Pages, issues, pull requests, or public CI artifacts.</li>
+        <li>Freeze further automated changes when evidence identity, manifest integrity, or privileged access state is uncertain.</li>
+      </ul>
+    </section>
+
+    <section class="panel" id="integration">
+      <h2>A.L.I.S.T.A.I.R.E. integration</h2>
+      <p>JusticeForMe is a candidate Linux host-observation adapter for the portable first-install security foundation:</p>
+      <ol>
+        <li>Repository <code>0</code> supervises a local, approved observation task.</li>
+        <li>JusticeForMe produces a report and evidence bundle.</li>
+        <li>Repository <code>0</code> transforms evidence into a versioned proposal.</li>
+        <li>Repository <code>1</code> validates device identity, schema, freshness, provenance, policy, and replay state.</li>
+        <li>Only a separately approved, narrow capability may authorize reversible remediation.</li>
+      </ol>
+      <p>The strongest current obstruction is that schema <code>1.0</code> has a hostname and global root flag but no authenticated device identity, per-check completion state, execution provenance, or replay protection. Integration must fail closed until those are supplied by an accepted envelope.</p>
+    </section>
+
+    <section class="panel" id="development">
+      <h2>Developer workflow</h2>
+      <pre><code>bash -n audit/linux-privilege-audit.sh
+node --check docs/app.js
+python3 -m http.server --directory docs 8000</code></pre>
+      <p>Collector changes must remain read-only, bounded, privacy-aware, and honest about unsupported or partial collection. Dashboard changes must remain local-only, schema-aware, accessible, and safe when rendering untrusted report values.</p>
+      <h3>Repository references</h3>
+      <ul>
+        <li><a href="reference/project-overview.md">Project overview</a></li>
+        <li><a href="reference/architecture.md">Architecture and trust boundaries</a></li>
+        <li><a href="reference/report-contract.md">Report and evidence contract</a></li>
+        <li><a href="reference/developer-onboarding.md">Developer onboarding</a></li>
+        <li><a href="reference/operations-and-recovery.md">Operations and recovery</a></li>
+        <li><a href="reference/obstruction-and-gluing.md">Obstruction and gluing analysis</a></li>
+      </ul>
+    </section>
+
+    <footer class="panel">
+      <p>Documentation publication is separate from raw evidence handling. A passing validation workflow does not establish forensic correctness, approve GitHub Pages deployment, or authorize host modification.</p>
+    </footer>
+  </main>
+</body>
+</html>

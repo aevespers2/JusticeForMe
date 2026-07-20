@@ -1,4 +1,4 @@
-name: Validate audit dashboard
+name: Validate audit dashboard and documentation
 
 on:
   pull_request:
@@ -6,13 +6,17 @@ on:
       - "audit/**"
       - "docs/**"
       - "README.md"
+      - "taskchain.md"
+      - "punchlist.md"
+      - "release.md"
+      - "changelog.md"
       - ".github/workflows/pages.yml"
 
 permissions:
   contents: read
 
 concurrency:
-  group: justiceforme-dashboard-${{ github.event.pull_request.number || github.ref }}
+  group: justiceforme-documentation-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -40,10 +44,25 @@ jobs:
           test -n "$SUBMITTED_SHA"
           test "$actual_sha" = "$SUBMITTED_SHA"
           test -z "$(git status --porcelain)"
-          test -f audit/linux-privilege-audit.sh
-          test -f docs/index.html
-          test -f docs/app.js
-          test -f docs/styles.css
+          required=(
+            audit/linux-privilege-audit.sh
+            docs/index.html
+            docs/guide.html
+            docs/app.js
+            docs/styles.css
+            docs/reference/project-overview.md
+            docs/reference/architecture.md
+            docs/reference/report-contract.md
+            docs/reference/developer-onboarding.md
+            docs/reference/operations-and-recovery.md
+            docs/reference/obstruction-and-gluing.md
+            README.md
+            taskchain.md
+            punchlist.md
+            release.md
+            changelog.md
+          )
+          for path in "${required[@]}"; do test -s "$path"; done
           ! grep -Eq 'pages:[[:space:]]*write|id-token:[[:space:]]*write|deploy-pages|configure-pages|upload-pages-artifact|workflow_dispatch|^[[:space:]]*push:' .github/workflows/pages.yml
           {
             printf 'repository=%s\n' "$GITHUB_REPOSITORY"
@@ -51,9 +70,10 @@ jobs:
             printf 'workflow_run=%s\n' "$GITHUB_RUN_ID"
             printf 'workflow_attempt=%s\n' "$GITHUB_RUN_ATTEMPT"
             printf 'deployment_authority=absent\n'
+            printf 'required_documentation=%s\n' "${#required[@]}"
           } | tee evidence/source-identity.txt
 
-      - name: Validate collector and dashboard sources
+      - name: Validate collector, dashboard, guide, and links
         id: sourcecheck
         continue-on-error: true
         shell: bash
@@ -65,8 +85,9 @@ jobs:
             python3 - <<'PY'
           from html.parser import HTMLParser
           from pathlib import Path
+          from urllib.parse import urlsplit
 
-          class DashboardParser(HTMLParser):
+          class PageParser(HTMLParser):
               def __init__(self):
                   super().__init__()
                   self.lang = False
@@ -74,8 +95,9 @@ jobs:
                   self.h1 = 0
                   self.labels = 0
                   self.buttons = 0
-                  self.local_scripts = []
-                  self.local_styles = []
+                  self.scripts = []
+                  self.styles = []
+                  self.links = []
 
               def handle_starttag(self, tag, attrs):
                   values = dict(attrs)
@@ -90,24 +112,52 @@ jobs:
                   elif tag == "button":
                       self.buttons += 1
                   elif tag == "script" and values.get("src"):
-                      self.local_scripts.append(values["src"])
+                      self.scripts.append(values["src"])
                   elif tag == "link" and values.get("rel") == "stylesheet":
-                      self.local_styles.append(values.get("href", ""))
+                      self.styles.append(values.get("href", ""))
+                  elif tag == "a" and values.get("href"):
+                      self.links.append(values["href"])
 
           root = Path("docs")
-          parser = DashboardParser()
-          parser.feed((root / "index.html").read_text(encoding="utf-8"))
-          assert parser.lang, "html language is missing"
-          assert parser.main == 1, "dashboard must contain exactly one main landmark"
-          assert parser.h1 == 1, "dashboard must contain exactly one h1"
-          assert parser.labels >= 1, "file input requires a label"
-          assert parser.buttons >= 1, "demonstration control is missing"
-          assert parser.local_scripts == ["app.js"], parser.local_scripts
-          assert parser.local_styles == ["styles.css"], parser.local_styles
-          for target in parser.local_scripts + parser.local_styles:
-              assert "://" not in target and not target.startswith("//"), target
-              assert (root / target).is_file(), target
-          print("Dashboard source validation passed.")
+
+          index = PageParser()
+          index.feed((root / "index.html").read_text(encoding="utf-8"))
+          assert index.lang
+          assert index.main == 1
+          assert index.h1 == 1
+          assert index.labels >= 1
+          assert index.buttons >= 1
+          assert index.scripts == ["app.js"], index.scripts
+          assert index.styles == ["styles.css"], index.styles
+          assert "guide.html" in index.links
+
+          guide = PageParser()
+          guide.feed((root / "guide.html").read_text(encoding="utf-8"))
+          assert guide.lang
+          assert guide.main == 1
+          assert guide.h1 == 1
+          assert guide.scripts == [], guide.scripts
+          assert guide.styles == ["styles.css"], guide.styles
+
+          for page, parser in ((root / "index.html", index), (root / "guide.html", guide)):
+              for target in parser.scripts + parser.styles + parser.links:
+                  parsed = urlsplit(target)
+                  if parsed.scheme or parsed.netloc or target.startswith("//"):
+                      raise AssertionError(f"external resource not allowed in {page}: {target}")
+                  path = parsed.path
+                  if not path or path.startswith("#"):
+                      continue
+                  resolved = (page.parent / path).resolve()
+                  assert root.resolve() in resolved.parents or resolved == root.resolve(), target
+                  assert resolved.is_file(), f"missing local target: {target}"
+
+          coordination = [Path(name) for name in ("README.md", "taskchain.md", "punchlist.md", "release.md", "changelog.md")]
+          for path in coordination:
+              text = path.read_text(encoding="utf-8")
+              assert "JusticeForMe" in text or path.name != "README.md"
+              assert len(text.splitlines()) >= 10, path
+
+          print("Collector, dashboard, guide, and documentation validation passed.")
           PY
           } > evidence/source-validation.txt 2>&1
           status=$?
@@ -135,7 +185,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
-          name: justiceforme-dashboard-validation-${{ env.SUBMITTED_SHA }}
+          name: justiceforme-documentation-${{ env.SUBMITTED_SHA }}
           path: evidence
           if-no-files-found: error
           retention-days: 30
