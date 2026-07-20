@@ -1,32 +1,146 @@
-name: Deploy GitHub Pages
+name: Validate audit dashboard
 
 on:
-  push:
-    branches: [main]
-    paths: ['docs/**', '.github/workflows/pages.yml']
-  workflow_dispatch:
+  pull_request:
+    paths:
+      - "audit/**"
+      - "docs/**"
+      - "README.md"
+      - ".github/workflows/pages.yml"
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
-  group: pages
+  group: justiceforme-dashboard-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
-  deploy:
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
+  validate:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUBMITTED_SHA: ${{ github.event.pull_request.head.sha }}
+
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/configure-pages@v5
-      - uses: actions/upload-pages-artifact@v3
+      - name: Check out submitted source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
         with:
-          path: docs
-      - name: Deploy
-        id: deployment
-        uses: actions/deploy-pages@v4
+          ref: ${{ env.SUBMITTED_SHA }}
+          fetch-depth: 1
+          persist-credentials: false
+          show-progress: false
+
+      - name: Assert exact source and deployment prohibition
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p evidence
+          actual_sha="$(git rev-parse HEAD)"
+          test -n "$SUBMITTED_SHA"
+          test "$actual_sha" = "$SUBMITTED_SHA"
+          test -z "$(git status --porcelain)"
+          test -f audit/linux-privilege-audit.sh
+          test -f docs/index.html
+          test -f docs/app.js
+          test -f docs/styles.css
+          ! grep -Eq 'pages:[[:space:]]*write|id-token:[[:space:]]*write|deploy-pages|configure-pages|upload-pages-artifact|workflow_dispatch|^[[:space:]]*push:' .github/workflows/pages.yml
+          {
+            printf 'repository=%s\n' "$GITHUB_REPOSITORY"
+            printf 'source_sha=%s\n' "$actual_sha"
+            printf 'workflow_run=%s\n' "$GITHUB_RUN_ID"
+            printf 'workflow_attempt=%s\n' "$GITHUB_RUN_ATTEMPT"
+            printf 'deployment_authority=absent\n'
+          } | tee evidence/source-identity.txt
+
+      - name: Validate collector and dashboard sources
+        id: sourcecheck
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          {
+            bash -n audit/linux-privilege-audit.sh
+            node --check docs/app.js
+            python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+
+          class DashboardParser(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.lang = False
+                  self.main = 0
+                  self.h1 = 0
+                  self.labels = 0
+                  self.buttons = 0
+                  self.local_scripts = []
+                  self.local_styles = []
+
+              def handle_starttag(self, tag, attrs):
+                  values = dict(attrs)
+                  if tag == "html" and values.get("lang"):
+                      self.lang = True
+                  elif tag == "main":
+                      self.main += 1
+                  elif tag == "h1":
+                      self.h1 += 1
+                  elif tag == "label":
+                      self.labels += 1
+                  elif tag == "button":
+                      self.buttons += 1
+                  elif tag == "script" and values.get("src"):
+                      self.local_scripts.append(values["src"])
+                  elif tag == "link" and values.get("rel") == "stylesheet":
+                      self.local_styles.append(values.get("href", ""))
+
+          root = Path("docs")
+          parser = DashboardParser()
+          parser.feed((root / "index.html").read_text(encoding="utf-8"))
+          assert parser.lang, "html language is missing"
+          assert parser.main == 1, "dashboard must contain exactly one main landmark"
+          assert parser.h1 == 1, "dashboard must contain exactly one h1"
+          assert parser.labels >= 1, "file input requires a label"
+          assert parser.buttons >= 1, "demonstration control is missing"
+          assert parser.local_scripts == ["app.js"], parser.local_scripts
+          assert parser.local_styles == ["styles.css"], parser.local_styles
+          for target in parser.local_scripts + parser.local_styles:
+              assert "://" not in target and not target.startswith("//"), target
+              assert (root / target).is_file(), target
+          print("Dashboard source validation passed.")
+          PY
+          } > evidence/source-validation.txt 2>&1
+          status=$?
+          cat evidence/source-validation.txt
+          echo "status=${status}" >> "$GITHUB_OUTPUT"
+          exit "$status"
+
+      - name: Record exact-head evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          {
+            printf 'bash=%s\n' "$(bash --version | head -1)"
+            printf 'node=%s\n' "$(node --version)"
+            printf 'python=%s\n' "$(python3 --version 2>&1)"
+            printf 'source_validation_status=%s\n' "${{ steps.sourcecheck.outputs.status || 'not-run' }}"
+            printf 'generated_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } | tee evidence/run-summary.txt
+          find evidence -maxdepth 1 -type f ! -name sha256.txt -print0 \
+            | sort -z \
+            | xargs -0 sha256sum > evidence/sha256.txt
+
+      - name: Upload validation evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: justiceforme-dashboard-validation-${{ env.SUBMITTED_SHA }}
+          path: evidence
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Fail when validation is incomplete or invalid
+        if: always()
+        shell: bash
+        run: test "${{ steps.sourcecheck.outputs.status }}" = "0"
