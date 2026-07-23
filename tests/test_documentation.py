@@ -64,6 +64,13 @@ def local_target(source: Path, raw_target: str) -> Path | None:
     return (source.parent / path).resolve()
 
 
+def workflow_structure(text: str) -> tuple[str, list[str], list[str]]:
+    trigger_section, remainder = text.split("permissions:", 1)
+    uses = [line.split("uses:", 1)[1].strip() for line in text.splitlines() if line.strip().startswith("uses:")]
+    permission_lines = [line.strip() for line in remainder.split("concurrency:", 1)[0].splitlines() if ":" in line]
+    return trigger_section, uses, permission_lines
+
+
 class DocumentationTests(unittest.TestCase):
     def test_required_documentation_exists(self):
         for path in REQUIRED_DOCS:
@@ -111,13 +118,13 @@ class DocumentationTests(unittest.TestCase):
 
     def test_publication_authority_remains_absent(self):
         workflow = (ROOT / ".github/workflows/pages.yml").read_text(encoding="utf-8")
-        prohibited = [
-            "pages: write", "id-token: write", "deploy-pages", "configure-pages",
-            "upload-pages-artifact", "workflow_dispatch", "\n  push:",
-        ]
-        for token in prohibited:
-            self.assertNotIn(token, workflow)
-        self.assertRegex(workflow, r"permissions:\s*\n\s+contents: read")
+        triggers, uses, permissions = workflow_structure(workflow)
+        self.assertNotRegex(triggers, r"(?m)^\s*push\s*:")
+        self.assertNotRegex(triggers, r"(?m)^\s*workflow_dispatch\s*:")
+        self.assertEqual(permissions, ["contents: read"])
+        prohibited_actions = ("actions/deploy-pages@", "actions/configure-pages@", "actions/upload-pages-artifact@")
+        for action in uses:
+            self.assertFalse(action.startswith(prohibited_actions), action)
 
     def test_skill_mapping_and_gap_are_recorded(self):
         text = (ROOT / "taskchain.md").read_text(encoding="utf-8")
