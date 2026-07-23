@@ -15,6 +15,7 @@ All notable product, documentation, validation, release, and authority-boundary 
 - 2026-07-23 — Added a local HTML documentation front door alongside the dashboard.
 - 2026-07-23 — Added `taskchain.md`, `punchlist.md`, and `release.md` with explicit publication, licensing, ownership, synthetic-test, and evidence gates.
 - 2026-07-23 — Added a separate read-only resulting-main workflow so exact default-branch documentation heads receive retained validation without adding Pages deployment authority.
+- 2026-07-23 — Added focused regressions for per-command failure aggregation, per-push evidence identity, always-retained failure evidence, repository-wide workflow scanning, and local-only dashboard assets.
 
 ### Changed
 
@@ -22,6 +23,7 @@ All notable product, documentation, validation, release, and authority-boundary 
 - 2026-07-23 — Expanded pull-request validation to cover documentation links, HTML navigation, planning alignment, diagram prose alternatives, and the unchanged deployment prohibition.
 - 2026-07-23 — Clarified that GitHub Pages content is prepared for local review but publication remains unauthorized.
 - 2026-07-23 — Separated pull-request validation in `pages.yml` from resulting-default-head validation so the Pages workflow remains structurally incapable of push, manual, OIDC, or deployment actions.
+- 2026-07-23 — Hardened resulting-main validation so shell, JavaScript, dashboard, regression, and integrity failures are tracked independently; each pushed `main` SHA receives its own validation generation; and workflow changes always trigger repository-wide deployment-authority checks.
 
 ### Security
 
@@ -29,6 +31,7 @@ All notable product, documentation, validation, release, and authority-boundary 
 - 2026-07-23 — Documented hostname, user/group, path, package, privilege, and persistence disclosure risks.
 - 2026-07-23 — Preserved read-only workflow permissions, exact-head checkout, pinned actions, local-only assets, and no OIDC or deployment authority.
 - 2026-07-23 — Required indicators, hashes, timestamps, package-verifier lines, and dashboard severities to remain distinct from proof, attribution, legal conclusions, and compliance decisions.
+- 2026-07-23 — Required retained evidence even when integrity checks fail and prohibited remote dashboard scripts/styles or deployment authority in any repository workflow.
 
 ### Release
 
