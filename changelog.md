@@ -1,0 +1,38 @@
+# JusticeForMe Changelog
+
+All notable product, documentation, validation, release, and authority-boundary changes are recorded here.
+
+## Unreleased
+
+### Added
+
+- 2026-07-23 — Added a project overview describing intended users, bounded questions, components, privacy model, documentation routes, and release posture.
+- 2026-07-23 — Added an architecture guide with a collector-to-report-to-dashboard diagram and equivalent prose, component responsibilities, trust boundaries, failure modes, and extension rules.
+- 2026-07-23 — Added authorized-use onboarding for collection, local report review, evidence preservation, maintainer setup, and stop conditions.
+- 2026-07-23 — Added a developer guide covering repository structure, design invariants, collector and dashboard changes, schema versioning, validation, review, and rollback.
+- 2026-07-23 — Added report schema `1.0` documentation, a synthetic example, compatibility rules, and browser-input security requirements.
+- 2026-07-23 — Added security, privacy, threat-model, chain-of-custody, disclosure, workflow, interpretation, correction, and rollback guidance.
+- 2026-07-23 — Added a local HTML documentation front door alongside the dashboard.
+- 2026-07-23 — Added `taskchain.md`, `punchlist.md`, and `release.md` with explicit publication, licensing, ownership, synthetic-test, and evidence gates.
+
+### Changed
+
+- 2026-07-23 — Expanded README navigation and repository layout to include the complete documentation and planning surface.
+- 2026-07-23 — Expanded pull-request validation to cover documentation links, HTML navigation, planning alignment, diagram prose alternatives, and the unchanged deployment prohibition.
+- 2026-07-23 — Clarified that GitHub Pages content is prepared for local review but publication remains unauthorized.
+
+### Security
+
+- 2026-07-23 — Required real host reports to remain outside public Git, CI, issues, and documentation artifacts.
+- 2026-07-23 — Documented hostname, user/group, path, package, privilege, and persistence disclosure risks.
+- 2026-07-23 — Preserved read-only workflow permissions, exact-head checkout, pinned actions, local-only assets, and no OIDC or deployment authority.
+- 2026-07-23 — Required indicators, hashes, timestamps, package-verifier lines, and dashboard severities to remain distinct from proof, attribution, legal conclusions, and compliance decisions.
+
+### Release
+
+- 2026-07-23 — Recorded status `BLOCKED_PUBLICATION_NOT_AUTHORIZED`; no Pages publication, package release, remote execution, credentials, telemetry, report upload, or deployment is included.
+
+## Historical baseline
+
+- 2026-07-20 — Removed stale deployed-Pages instructions and aligned the README with local dashboard use and validation-only workflow policy.
+- 2026-07-20 — Replaced automatic Pages deployment with exact-head, read-only pull-request validation and retained evidence.
