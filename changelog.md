@@ -14,12 +14,14 @@ All notable product, documentation, validation, release, and authority-boundary 
 - 2026-07-23 — Added security, privacy, threat-model, chain-of-custody, disclosure, workflow, interpretation, correction, and rollback guidance.
 - 2026-07-23 — Added a local HTML documentation front door alongside the dashboard.
 - 2026-07-23 — Added `taskchain.md`, `punchlist.md`, and `release.md` with explicit publication, licensing, ownership, synthetic-test, and evidence gates.
+- 2026-07-23 — Added a separate read-only resulting-main workflow so exact default-branch documentation heads receive retained validation without adding Pages deployment authority.
 
 ### Changed
 
 - 2026-07-23 — Expanded README navigation and repository layout to include the complete documentation and planning surface.
 - 2026-07-23 — Expanded pull-request validation to cover documentation links, HTML navigation, planning alignment, diagram prose alternatives, and the unchanged deployment prohibition.
 - 2026-07-23 — Clarified that GitHub Pages content is prepared for local review but publication remains unauthorized.
+- 2026-07-23 — Separated pull-request validation in `pages.yml` from resulting-default-head validation so the Pages workflow remains structurally incapable of push, manual, OIDC, or deployment actions.
 
 ### Security
 
