@@ -65,7 +65,22 @@ jobs:
             changelog.md
           )
           for path in "${required[@]}"; do test -f "$path"; done
-          ! grep -Eq 'pages:[[:space:]]*write|id-token:[[:space:]]*write|deploy-pages|configure-pages|upload-pages-artifact|workflow_dispatch|^[[:space:]]*push:' .github/workflows/pages.yml
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          text = Path('.github/workflows/pages.yml').read_text(encoding='utf-8')
+          trigger_section, remainder = text.split('permissions:', 1)
+          assert not re.search(r'(?m)^\s*push\s*:', trigger_section)
+          assert not re.search(r'(?m)^\s*workflow_dispatch\s*:', trigger_section)
+          permission_section = remainder.split('concurrency:', 1)[0]
+          permission_lines = [line.strip() for line in permission_section.splitlines() if ':' in line]
+          assert permission_lines == ['contents: read'], permission_lines
+          uses = [line.split('uses:', 1)[1].strip() for line in text.splitlines() if line.strip().startswith('uses:')]
+          prohibited = ('actions/deploy-pages@', 'actions/configure-pages@', 'actions/upload-pages-artifact@')
+          assert not any(action.startswith(prohibited) for action in uses), uses
+          print('Deployment authority is structurally absent.')
+          PY
           evidence="$RUNNER_TEMP/justiceforme-documentation-evidence"
           mkdir -p "$evidence"
           {
