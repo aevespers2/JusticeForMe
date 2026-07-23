@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>JusticeForMe Documentation Guide</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <p class="eyebrow">JusticeForMe documentation</p>
+      <h1>Local Audit and Evidence Review Guide</h1>
+      <p class="lede">Understand the collector, report schema, evidence limits, and safe review workflow before loading a report.</p>
+    </header>
+
+    <nav class="panel" aria-label="Documentation navigation">
+      <a href="index.html">Open the local dashboard</a>
+      <span aria-hidden="true"> · </span>
+      <a href="project-overview.md">Project overview</a>
+      <span aria-hidden="true"> · </span>
+      <a href="architecture.md">Architecture</a>
+      <span aria-hidden="true"> · </span>
+      <a href="onboarding.md">Onboarding</a>
+      <span aria-hidden="true"> · </span>
+      <a href="developer-guide.md">Developer guide</a>
+      <span aria-hidden="true"> · </span>
+      <a href="report-schema.md">Report schema</a>
+      <span aria-hidden="true"> · </span>
+      <a href="security-and-evidence.md">Security and evidence</a>
+    </nav>
+
+    <section class="panel">
+      <h2>What this project does</h2>
+      <p>JusticeForMe reads Linux privilege and configuration metadata from an authorized local host, writes a timestamped report directory, and lets a reviewer load the generated <code>report.json</code> into a dependency-free browser dashboard.</p>
+    </section>
+
+    <section class="panel">
+      <h2>What it does not do</h2>
+      <p>The project does not prove compromise, attribute activity, determine intent, certify compliance, upload reports, deploy a service, or replace a forensic examiner. Dashboard thresholds prioritize review; they are not universal security baselines.</p>
+    </section>
+
+    <section class="panel">
+      <h2>Safe review sequence</h2>
+      <ol>
+        <li>Confirm authorization and preserve the original report directory.</li>
+        <li>Verify <code>REPORT-SHA256SUMS.txt</code>.</li>
+        <li>Open the dashboard from a trusted local checkout.</li>
+        <li>Select <code>report.json</code>; the browser processes it locally.</li>
+        <li>Compare indicators with trusted package metadata, known-good baselines, and documented changes.</li>
+        <li>Record uncertainty, incomplete collection, and every transformation or copy.</li>
+      </ol>
+    </section>
+
+    <section class="panel">
+      <h2>Privacy and publication boundary</h2>
+      <p>Real reports can reveal hostnames, users, groups, local paths, privileged binaries, package changes, and persistence mechanisms. Do not publish reports or attach them to public issues. GitHub Pages publication is not authorized; the repository workflow validates pull-request source only and has read-only permissions.</p>
+    </section>
+
+    <section class="panel guidance">
+      <h2>Interpretation rule</h2>
+      <p>A finding is an indicator for investigation, not proof of misconduct. Preserve raw artifacts, document chain of custody, and seek specialist review when conclusions carry operational, employment, legal, or public consequences.</p>
+    </section>
+  </main>
+</body>
+</html>
