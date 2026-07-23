@@ -11,8 +11,7 @@ on:
       - "punchlist.md"
       - "release.md"
       - "changelog.md"
-      - ".github/workflows/pages.yml"
-      - ".github/workflows/resulting-main-validation.yml"
+      - ".github/workflows/**"
   push:
     branches:
       - main
@@ -25,15 +24,14 @@ on:
       - "punchlist.md"
       - "release.md"
       - "changelog.md"
-      - ".github/workflows/pages.yml"
-      - ".github/workflows/resulting-main-validation.yml"
+      - ".github/workflows/**"
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: justiceforme-resulting-main-${{ github.event.pull_request.number || github.ref }}
+  group: justiceforme-resulting-main-${{ github.event_name == 'push' && github.sha || github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -53,7 +51,7 @@ jobs:
           persist-credentials: false
           show-progress: false
 
-      - name: Assert exact source and deployment prohibition
+      - name: Assert exact source and repository-wide deployment prohibition
         shell: bash
         run: |
           set -euo pipefail
@@ -87,6 +85,23 @@ jobs:
           from pathlib import Path
           import re
 
+          workflow_paths = sorted(Path('.github/workflows').glob('*.yml')) + sorted(Path('.github/workflows').glob('*.yaml'))
+          assert workflow_paths, 'no workflow files found'
+          prohibited_permission_patterns = (
+              re.compile(r'(?m)^\s*' + 'pages' + r'\s*:\s*write\s*(?:#.*)?$'),
+              re.compile(r'(?m)^\s*' + 'id-token' + r'\s*:\s*write\s*(?:#.*)?$'),
+          )
+          prohibited_action_prefixes = tuple(
+              'actions/' + name + '@'
+              for name in ('deploy-pages', 'configure-pages', 'upload-pages-artifact')
+          )
+          for path in workflow_paths:
+              text = path.read_text(encoding='utf-8')
+              for pattern in prohibited_permission_patterns:
+                  assert not pattern.search(text), f'{path}: prohibited write permission'
+              uses = [line.split('uses:', 1)[1].strip() for line in text.splitlines() if line.strip().startswith('uses:')]
+              assert not any(action.startswith(prohibited_action_prefixes) for action in uses), f'{path}: prohibited deployment action'
+
           pages = Path('.github/workflows/pages.yml').read_text(encoding='utf-8')
           trigger_section, remainder = pages.split('permissions:', 1)
           assert not re.search(r'(?m)^\s*push\s*:', trigger_section)
@@ -94,17 +109,13 @@ jobs:
           permission_section = remainder.split('concurrency:', 1)[0]
           permission_lines = [line.strip() for line in permission_section.splitlines() if ':' in line]
           assert permission_lines == ['contents: read'], permission_lines
-          uses = [line.split('uses:', 1)[1].strip() for line in pages.splitlines() if line.strip().startswith('uses:')]
-          prohibited = ('actions/deploy-pages@', 'actions/configure-pages@', 'actions/upload-pages-artifact@')
-          assert not any(action.startswith(prohibited) for action in uses), uses
 
           resulting = Path('.github/workflows/resulting-main-validation.yml').read_text(encoding='utf-8')
-          assert 'branches:' in resulting and '- main' in resulting
+          assert '".github/workflows/**"' in resulting
+          assert "github.event_name == 'push' && github.sha" in resulting
           resulting_permissions = resulting.split('permissions:', 1)[1].split('concurrency:', 1)[0]
           assert [line.strip() for line in resulting_permissions.splitlines() if ':' in line] == ['contents: read']
-          resulting_uses = [line.split('uses:', 1)[1].strip() for line in resulting.splitlines() if line.strip().startswith('uses:')]
-          assert not any(action.startswith(prohibited) for action in resulting_uses), resulting_uses
-          print('Resulting-main validation is read-only and deployment authority remains absent.')
+          print(f'Validated deployment prohibition across {len(workflow_paths)} workflow files.')
           PY
           evidence="$RUNNER_TEMP/justiceforme-resulting-main-evidence"
           mkdir -p "$evidence"
@@ -119,41 +130,128 @@ jobs:
             printf 'report_schema=1.0\n'
           } | tee "$evidence/source-identity.txt"
 
-      - name: Validate sources and documentation
-        id: validation
+      - name: Validate collector shell syntax
+        id: collector
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          evidence="$RUNNER_TEMP/justiceforme-resulting-main-evidence"
+          bash -n audit/linux-privilege-audit.sh > "$evidence/collector-syntax.txt" 2>&1
+          status=$?
+          cat "$evidence/collector-syntax.txt"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Validate dashboard JavaScript syntax
+        id: javascript
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          evidence="$RUNNER_TEMP/justiceforme-resulting-main-evidence"
+          node --check docs/app.js > "$evidence/javascript-syntax.txt" 2>&1
+          status=$?
+          cat "$evidence/javascript-syntax.txt"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Validate dashboard accessibility and local-only assets
+        id: dashboard
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          evidence="$RUNNER_TEMP/justiceforme-resulting-main-evidence"
+          python3 - <<'PY' > "$evidence/dashboard-source.txt" 2>&1
+          from html.parser import HTMLParser
+          from pathlib import Path
+          from urllib.parse import urlsplit
+
+          class PageParser(HTMLParser):
+              def __init__(self):
+                  super().__init__()
+                  self.lang = False
+                  self.main = 0
+                  self.h1 = 0
+                  self.labels = 0
+                  self.scripts = []
+                  self.styles = []
+
+              def handle_starttag(self, tag, attrs):
+                  values = dict(attrs)
+                  if tag == 'html' and values.get('lang'):
+                      self.lang = True
+                  elif tag == 'main':
+                      self.main += 1
+                  elif tag == 'h1':
+                      self.h1 += 1
+                  elif tag == 'label':
+                      self.labels += 1
+                  elif tag == 'script' and values.get('src'):
+                      self.scripts.append(values['src'])
+                  elif tag == 'link' and values.get('rel') == 'stylesheet':
+                      self.styles.append(values.get('href', ''))
+
+          root = Path('docs')
+          for name in ('index.html', 'guide.html'):
+              parser = PageParser()
+              parser.feed((root / name).read_text(encoding='utf-8'))
+              assert parser.lang, f'{name}: html language is missing'
+              assert parser.main == 1, f'{name}: exactly one main landmark required'
+              assert parser.h1 == 1, f'{name}: exactly one h1 required'
+              if name == 'index.html':
+                  assert parser.labels >= 1, 'file input requires a label'
+              for target in parser.scripts + parser.styles:
+                  parsed = urlsplit(target)
+                  assert not parsed.scheme and not parsed.netloc and not target.startswith('//'), f'{name}: remote asset prohibited: {target}'
+                  assert (root / parsed.path).is_file(), f'{name}: missing local asset: {target}'
+          print('Dashboard and guide accessibility and local-only asset validation passed.')
+          PY
+          status=$?
+          cat "$evidence/dashboard-source.txt"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Run documentation and governance regressions
+        id: tests
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          evidence="$RUNNER_TEMP/justiceforme-resulting-main-evidence"
+          python3 -m unittest discover -s tests -p 'test_*.py' -v > "$evidence/documentation-tests.txt" 2>&1
+          status=$?
+          cat "$evidence/documentation-tests.txt"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Record deterministic inputs and clean tree
+        id: integrity
         continue-on-error: true
         shell: bash
         run: |
           set +e
           evidence="$RUNNER_TEMP/justiceforme-resulting-main-evidence"
           {
-            bash -n audit/linux-privilege-audit.sh
-            node --check docs/app.js
-            python3 -m unittest discover -s tests -p 'test_*.py' -v
-          } > "$evidence/validation.txt" 2>&1
+            find docs -type f -print0 | sort -z | xargs -0 sha256sum > "$evidence/docs-sha256.txt"
+            find .github/workflows -type f \( -name '*.yml' -o -name '*.yaml' \) -print0 | sort -z | xargs -0 sha256sum > "$evidence/workflows-sha256.txt"
+            sha256sum \
+              audit/linux-privilege-audit.sh \
+              README.md taskchain.md punchlist.md release.md changelog.md \
+              tests/test_documentation.py \
+              > "$evidence/control-sha256.txt"
+            git diff --exit-code
+            git diff --cached --exit-code
+            test -z "$(git status --porcelain)"
+          } > "$evidence/integrity.txt" 2>&1
           status=$?
-          cat "$evidence/validation.txt"
+          cat "$evidence/integrity.txt"
           echo "status=$status" >> "$GITHUB_OUTPUT"
           exit 0
 
-      - name: Record deterministic inputs and clean tree
-        shell: bash
-        run: |
-          set -euo pipefail
-          evidence="$RUNNER_TEMP/justiceforme-resulting-main-evidence"
-          find docs -type f -print0 | sort -z | xargs -0 sha256sum > "$evidence/docs-sha256.txt"
-          sha256sum \
-            audit/linux-privilege-audit.sh \
-            README.md taskchain.md punchlist.md release.md changelog.md \
-            tests/test_documentation.py \
-            .github/workflows/pages.yml \
-            .github/workflows/resulting-main-validation.yml \
-            > "$evidence/control-sha256.txt"
-          git diff --exit-code
-          git diff --cached --exit-code
-          test -z "$(git status --porcelain)"
-
       - name: Upload retained exact-head evidence
+        if: always()
         uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
         with:
           name: justiceforme-resulting-main-${{ env.SUBMITTED_SHA }}
@@ -162,9 +260,18 @@ jobs:
           retention-days: 30
 
       - name: Fail closed on incomplete validation
+        if: always()
         shell: bash
         env:
-          VALIDATION_STATUS: ${{ steps.validation.outputs.status }}
+          COLLECTOR_STATUS: ${{ steps.collector.outputs.status }}
+          JAVASCRIPT_STATUS: ${{ steps.javascript.outputs.status }}
+          DASHBOARD_STATUS: ${{ steps.dashboard.outputs.status }}
+          TEST_STATUS: ${{ steps.tests.outputs.status }}
+          INTEGRITY_STATUS: ${{ steps.integrity.outputs.status }}
         run: |
           set -euo pipefail
-          test "$VALIDATION_STATUS" = "0"
+          test "$COLLECTOR_STATUS" = "0"
+          test "$JAVASCRIPT_STATUS" = "0"
+          test "$DASHBOARD_STATUS" = "0"
+          test "$TEST_STATUS" = "0"
+          test "$INTEGRITY_STATUS" = "0"
