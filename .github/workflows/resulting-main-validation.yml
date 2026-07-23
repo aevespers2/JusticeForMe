@@ -1,0 +1,170 @@
+name: JusticeForMe Resulting Main Validation
+
+on:
+  pull_request:
+    paths:
+      - "audit/**"
+      - "docs/**"
+      - "tests/**"
+      - "README.md"
+      - "taskchain.md"
+      - "punchlist.md"
+      - "release.md"
+      - "changelog.md"
+      - ".github/workflows/pages.yml"
+      - ".github/workflows/resulting-main-validation.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "audit/**"
+      - "docs/**"
+      - "tests/**"
+      - "README.md"
+      - "taskchain.md"
+      - "punchlist.md"
+      - "release.md"
+      - "changelog.md"
+      - ".github/workflows/pages.yml"
+      - ".github/workflows/resulting-main-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: justiceforme-resulting-main-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      SUBMITTED_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    steps:
+      - name: Check out exact submitted source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ env.SUBMITTED_SHA }}
+          fetch-depth: 1
+          persist-credentials: false
+          show-progress: false
+
+      - name: Assert exact source and deployment prohibition
+        shell: bash
+        run: |
+          set -euo pipefail
+          actual_sha="$(git rev-parse HEAD)"
+          test -n "$SUBMITTED_SHA"
+          test "$actual_sha" = "$SUBMITTED_SHA"
+          test -z "$(git status --porcelain)"
+          required=(
+            audit/linux-privilege-audit.sh
+            docs/index.html
+            docs/guide.html
+            docs/app.js
+            docs/styles.css
+            docs/project-overview.md
+            docs/architecture.md
+            docs/onboarding.md
+            docs/developer-guide.md
+            docs/report-schema.md
+            docs/security-and-evidence.md
+            tests/test_documentation.py
+            README.md
+            taskchain.md
+            punchlist.md
+            release.md
+            changelog.md
+            .github/workflows/pages.yml
+            .github/workflows/resulting-main-validation.yml
+          )
+          for path in "${required[@]}"; do test -f "$path"; done
+          python3 - <<'PY'
+          from pathlib import Path
+          import re
+
+          pages = Path('.github/workflows/pages.yml').read_text(encoding='utf-8')
+          trigger_section, remainder = pages.split('permissions:', 1)
+          assert not re.search(r'(?m)^\s*push\s*:', trigger_section)
+          assert not re.search(r'(?m)^\s*workflow_dispatch\s*:', trigger_section)
+          permission_section = remainder.split('concurrency:', 1)[0]
+          permission_lines = [line.strip() for line in permission_section.splitlines() if ':' in line]
+          assert permission_lines == ['contents: read'], permission_lines
+          uses = [line.split('uses:', 1)[1].strip() for line in pages.splitlines() if line.strip().startswith('uses:')]
+          prohibited = ('actions/deploy-pages@', 'actions/configure-pages@', 'actions/upload-pages-artifact@')
+          assert not any(action.startswith(prohibited) for action in uses), uses
+
+          resulting = Path('.github/workflows/resulting-main-validation.yml').read_text(encoding='utf-8')
+          assert 'branches:' in resulting and '- main' in resulting
+          resulting_permissions = resulting.split('permissions:', 1)[1].split('concurrency:', 1)[0]
+          assert [line.strip() for line in resulting_permissions.splitlines() if ':' in line] == ['contents: read']
+          resulting_uses = [line.split('uses:', 1)[1].strip() for line in resulting.splitlines() if line.strip().startswith('uses:')]
+          assert not any(action.startswith(prohibited) for action in resulting_uses), resulting_uses
+          print('Resulting-main validation is read-only and deployment authority remains absent.')
+          PY
+          evidence="$RUNNER_TEMP/justiceforme-resulting-main-evidence"
+          mkdir -p "$evidence"
+          {
+            printf 'repository=%s\n' "$GITHUB_REPOSITORY"
+            printf 'source_sha=%s\n' "$actual_sha"
+            printf 'event_name=%s\n' "$GITHUB_EVENT_NAME"
+            printf 'ref=%s\n' "$GITHUB_REF"
+            printf 'workflow_run=%s\n' "$GITHUB_RUN_ID"
+            printf 'workflow_attempt=%s\n' "$GITHUB_RUN_ATTEMPT"
+            printf 'deployment_authority=absent\n'
+            printf 'report_schema=1.0\n'
+          } | tee "$evidence/source-identity.txt"
+
+      - name: Validate sources and documentation
+        id: validation
+        continue-on-error: true
+        shell: bash
+        run: |
+          set +e
+          evidence="$RUNNER_TEMP/justiceforme-resulting-main-evidence"
+          {
+            bash -n audit/linux-privilege-audit.sh
+            node --check docs/app.js
+            python3 -m unittest discover -s tests -p 'test_*.py' -v
+          } > "$evidence/validation.txt" 2>&1
+          status=$?
+          cat "$evidence/validation.txt"
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Record deterministic inputs and clean tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          evidence="$RUNNER_TEMP/justiceforme-resulting-main-evidence"
+          find docs -type f -print0 | sort -z | xargs -0 sha256sum > "$evidence/docs-sha256.txt"
+          sha256sum \
+            audit/linux-privilege-audit.sh \
+            README.md taskchain.md punchlist.md release.md changelog.md \
+            tests/test_documentation.py \
+            .github/workflows/pages.yml \
+            .github/workflows/resulting-main-validation.yml \
+            > "$evidence/control-sha256.txt"
+          git diff --exit-code
+          git diff --cached --exit-code
+          test -z "$(git status --porcelain)"
+
+      - name: Upload retained exact-head evidence
+        uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+        with:
+          name: justiceforme-resulting-main-${{ env.SUBMITTED_SHA }}
+          path: ${{ runner.temp }}/justiceforme-resulting-main-evidence
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Fail closed on incomplete validation
+        shell: bash
+        env:
+          VALIDATION_STATUS: ${{ steps.validation.outputs.status }}
+        run: |
+          set -euo pipefail
+          test "$VALIDATION_STATUS" = "0"
