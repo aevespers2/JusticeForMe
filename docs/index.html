@@ -10,14 +10,15 @@
   <main class="shell">
     <header>
       <p class="eyebrow">JusticeForMe</p>
-      <h1>Linux Privilege & Configuration Audit</h1>
+      <h1>Linux Privilege &amp; Configuration Audit</h1>
       <p class="lede">Load a locally generated <code>report.json</code>. Analysis stays in your browser and is not uploaded by this page.</p>
+      <p><a href="guide.html">Read the documentation and evidence-handling guide</a></p>
     </header>
 
     <section class="panel controls">
       <label class="file-button">Choose report.json<input id="file" type="file" accept="application/json,.json"></label>
       <button id="demo" type="button">Load demonstration data</button>
-      <span id="status">No report loaded</span>
+      <span id="status" role="status" aria-live="polite">No report loaded</span>
     </section>
 
     <section id="summary" class="summary hidden">
