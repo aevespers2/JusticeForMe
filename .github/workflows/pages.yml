@@ -16,8 +16,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: justiceforme-documentation-${{ github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+  group: justiceforme-documentation-${{ github.event.pull_request.head.sha }}
+  cancel-in-progress: false
 
 jobs:
   validate:
@@ -53,6 +53,7 @@ jobs:
             docs/reference/project-overview.md
             docs/reference/architecture.md
             docs/reference/report-contract.md
+            docs/reference/accessibility-and-review-evidence.md
             docs/reference/developer-onboarding.md
             docs/reference/operations-and-recovery.md
             docs/reference/obstruction-and-gluing.md
@@ -70,10 +71,11 @@ jobs:
             printf 'workflow_run=%s\n' "$GITHUB_RUN_ID"
             printf 'workflow_attempt=%s\n' "$GITHUB_RUN_ATTEMPT"
             printf 'deployment_authority=absent\n'
+            printf 'accessibility_status=DOCUMENTED_NOT_CERTIFIED\n'
             printf 'required_documentation=%s\n' "${#required[@]}"
           } | tee evidence/source-identity.txt
 
-      - name: Validate collector, dashboard, guide, and links
+      - name: Validate collector, dashboard, guide, links, and accessibility protocol
         id: sourcecheck
         continue-on-error: true
         shell: bash
@@ -98,6 +100,7 @@ jobs:
                   self.scripts = []
                   self.styles = []
                   self.links = []
+                  self.live_regions = 0
 
               def handle_starttag(self, tag, attrs):
                   values = dict(attrs)
@@ -117,6 +120,8 @@ jobs:
                       self.styles.append(values.get("href", ""))
                   elif tag == "a" and values.get("href"):
                       self.links.append(values["href"])
+                  if values.get("aria-live") or values.get("role") == "status":
+                      self.live_regions += 1
 
           root = Path("docs")
 
@@ -138,6 +143,7 @@ jobs:
           assert guide.h1 == 1
           assert guide.scripts == [], guide.scripts
           assert guide.styles == ["styles.css"], guide.styles
+          assert "reference/accessibility-and-review-evidence.md" in guide.links
 
           for page, parser in ((root / "index.html", index), (root / "guide.html", guide)):
               for target in parser.scripts + parser.styles + parser.links:
@@ -151,13 +157,41 @@ jobs:
                   assert root.resolve() in resolved.parents or resolved == root.resolve(), target
                   assert resolved.is_file(), f"missing local target: {target}"
 
+          accessibility = (root / "reference/accessibility-and-review-evidence.md").read_text(encoding="utf-8")
+          required_accessibility_markers = (
+              "DOCUMENTED_NOT_CERTIFIED",
+              "NOT_REVIEWED",
+              "PARTIAL",
+              "PASS",
+              "FAIL",
+              "BLOCKED",
+              "UNKNOWN",
+              "SUPERSEDED",
+              "WITHDRAWN",
+              "CORRECTED",
+              "200%",
+              "400%",
+              "screen-reader",
+              "reduced-motion",
+              "accessibility_certification: denied",
+              "pages_publication: denied",
+              "collector_execution: denied",
+              "remediation: denied",
+              "release: denied",
+          )
+          for marker in required_accessibility_markers:
+              assert marker in accessibility, marker
+          assert "```mermaid" in accessibility
+          assert "In prose:" in accessibility
+
           coordination = [Path(name) for name in ("README.md", "taskchain.md", "punchlist.md", "release.md", "changelog.md")]
           for path in coordination:
               text = path.read_text(encoding="utf-8")
               assert "JusticeForMe" in text or path.name != "README.md"
               assert len(text.splitlines()) >= 10, path
+              assert "DOCUMENTED_NOT_CERTIFIED" in text, path
 
-          print("Collector, dashboard, guide, and documentation validation passed.")
+          print("Collector, dashboard, guide, links, and accessibility protocol validation passed.")
           PY
           } > evidence/source-validation.txt 2>&1
           status=$?
@@ -175,6 +209,7 @@ jobs:
             printf 'node=%s\n' "$(node --version)"
             printf 'python=%s\n' "$(python3 --version 2>&1)"
             printf 'source_validation_status=%s\n' "${{ steps.sourcecheck.outputs.status || 'not-run' }}"
+            printf 'accessibility_certification=absent\n'
             printf 'generated_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
           } | tee evidence/run-summary.txt
           find evidence -maxdepth 1 -type f ! -name sha256.txt -print0 \

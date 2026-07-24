@@ -16,6 +16,7 @@
         <a href="index.html">Audit dashboard</a>
         <a href="#architecture">Architecture</a>
         <a href="#contract">Report contract</a>
+        <a href="#accessibility">Accessibility review</a>
         <a href="#operations">Operations</a>
         <a href="#integration">Portfolio integration</a>
         <a href="#development">Development</a>
@@ -56,6 +57,21 @@
       <p>Breaking field or semantic changes require a new schema version. Transport, proposal, capability, and receipt envelopes remain separate contracts.</p>
     </section>
 
+    <section class="panel" id="accessibility">
+      <h2>Accessibility and review evidence</h2>
+      <p>Status: <code>DOCUMENTED_NOT_CERTIFIED</code>. The repository defines a review protocol for the exact dashboard, guide, repository documentation, and rendered artifact rather than treating source validation as universal accessibility evidence.</p>
+      <ul>
+        <li>Review keyboard access, focus order and visibility, labels, live status, and error recovery.</li>
+        <li>Review headings, landmarks, tables, metric semantics, and diagram prose with a screen reader.</li>
+        <li>Review 200% and 400% zoom, responsive reflow, long paths, hashes, code blocks, and narrow viewports.</li>
+        <li>Verify contrast, forced-colors behavior, reduced motion, and non-color severity communication.</li>
+        <li>Use synthetic fixtures and keep real host evidence out of public screenshots, recordings, logs, and artifacts.</li>
+        <li>Record the exact source, artifact digest, browser, viewport, input method, assistive technology, reviewer, limitations, and correction links.</li>
+      </ul>
+      <p>A pass for one environment does not certify every environment. A moved head, changed renderer, discovered defect, or missing manual check requires a new, partial, failed, blocked, corrected, withdrawn, or superseded record.</p>
+      <p><a href="reference/accessibility-and-review-evidence.md">Read the complete accessibility and review-evidence protocol</a>.</p>
+    </section>
+
     <section class="panel" id="operations">
       <h2>Operations and evidence preservation</h2>
       <pre><code>sudo ./audit/linux-privilege-audit.sh /protected/path/justiceforme-run
@@ -94,6 +110,7 @@ python3 -m http.server --directory docs 8000</code></pre>
         <li><a href="reference/project-overview.md">Project overview</a></li>
         <li><a href="reference/architecture.md">Architecture and trust boundaries</a></li>
         <li><a href="reference/report-contract.md">Report and evidence contract</a></li>
+        <li><a href="reference/accessibility-and-review-evidence.md">Accessibility and review evidence</a></li>
         <li><a href="reference/developer-onboarding.md">Developer onboarding</a></li>
         <li><a href="reference/operations-and-recovery.md">Operations and recovery</a></li>
         <li><a href="reference/obstruction-and-gluing.md">Obstruction and gluing analysis</a></li>
@@ -101,7 +118,7 @@ python3 -m http.server --directory docs 8000</code></pre>
     </section>
 
     <footer class="panel">
-      <p>Documentation publication is separate from raw evidence handling. A passing validation workflow does not establish forensic correctness, approve GitHub Pages deployment, or authorize host modification.</p>
+      <p>Documentation publication is separate from raw evidence handling. A passing validation workflow does not establish forensic correctness, certify accessibility, approve GitHub Pages deployment, or authorize host modification.</p>
     </footer>
   </main>
 </body>

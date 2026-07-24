@@ -17,6 +17,7 @@ The current report schema does not provide authenticated device identity, per-ch
 - [Project overview](docs/reference/project-overview.md)
 - [Architecture and trust boundaries](docs/reference/architecture.md)
 - [Report and evidence contract](docs/reference/report-contract.md)
+- [Accessibility and review evidence](docs/reference/accessibility-and-review-evidence.md)
 - [Developer onboarding](docs/reference/developer-onboarding.md)
 - [Operations and recovery](docs/reference/operations-and-recovery.md)
 - [Obstruction and gluing analysis](docs/reference/obstruction-and-gluing.md)
@@ -48,6 +49,12 @@ The script creates a timestamped report directory containing:
 Open `docs/index.html` locally, choose the generated `report.json`, and review the prioritized indicators. Parsing occurs entirely in the browser; the dashboard does not upload the selected file.
 
 GitHub Pages publication is not authorized by the repository workflow. The workflow validates pull-request source only, uses read-only repository permissions, and does not deploy, publish, request an OIDC token, or change credentials.
+
+## Accessibility review status
+
+Status: `DOCUMENTED_NOT_CERTIFIED`.
+
+The repository now defines exact-artifact review procedures for keyboard access, focus, screen-reader semantics, 200% and 400% zoom and reflow, contrast, reduced motion, cognitive access, privacy, error recovery, correction, and supersession. Automated source checks do not constitute accessibility certification, and a pass for one source, artifact, browser, viewport, or assistive technology must not be generalized to another.
 
 ## Architecture boundary
 
@@ -87,7 +94,7 @@ changelog.md                       Product and documentation history
 
 ## Validation boundary
 
-Dashboard or collector changes must pass exact-head validation for shell syntax, JavaScript syntax, required HTML landmarks and controls, local assets, documentation presence and links, clean checkout identity, and absence of Pages deployment authority. Passing validation does not establish forensic correctness, compliance, publication approval, integration readiness, or proof of malicious activity.
+Dashboard or collector changes must pass exact-head validation for shell syntax, JavaScript syntax, required HTML landmarks and controls, local assets, documentation presence and links, clean checkout identity, accessibility-protocol markers, and absence of Pages deployment authority. Passing validation does not establish forensic correctness, compliance, accessibility certification, publication approval, integration readiness, or proof of malicious activity.
 
 ## Scope
 
