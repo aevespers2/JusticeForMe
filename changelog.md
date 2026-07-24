@@ -6,6 +6,8 @@ All notable product, documentation, validation, release, and authority-boundary 
 
 ### Added
 
+- 2026-07-24 — Preservation-safely restored the unique accessibility and review-evidence protocol from historical candidate `docs/portfolio-integration-20260720@33db861320c29e71059ec390cbdafe04c8f8793d` into the current default-branch documentation architecture without merging the divergent historical lineage.
+- 2026-07-24 — Added `docs/accessibility-and-review-evidence.md` with exact source/artifact bindings, nine evidence states, keyboard, screen-reader, contrast, reduced-motion, 200%/400% zoom and reflow, cognitive-access, privacy, correction, withdrawal, supersession, rollback, and reviewer-onboarding guidance under `DOCUMENTED_NOT_CERTIFIED`.
 - 2026-07-23 — Added a project overview describing intended users, bounded questions, components, privacy model, documentation routes, and release posture.
 - 2026-07-23 — Added an architecture guide with a collector-to-report-to-dashboard diagram and equivalent prose, component responsibilities, trust boundaries, failure modes, and extension rules.
 - 2026-07-23 — Added authorized-use onboarding for collection, local report review, evidence preservation, maintainer setup, and stop conditions.
@@ -20,6 +22,7 @@ All notable product, documentation, validation, release, and authority-boundary 
 ### Changed
 
 - 2026-07-24 — Bound pull-request validation concurrency to each immutable submitted head, disabled cancellation of superseded runs, and added regression coverage so every reviewed generation can retain terminal evidence.
+- 2026-07-24 — Synchronized README, local guide, task chain, punch list, and release plan around accessibility review state `DOCUMENTED_NOT_CERTIFIED`, manual rendered-review gates, certification separation, correction, withdrawal, and historical-source preservation.
 - 2026-07-23 — Expanded README navigation and repository layout to include the complete documentation and planning surface.
 - 2026-07-23 — Expanded pull-request validation to cover documentation links, HTML navigation, planning alignment, diagram prose alternatives, and the unchanged deployment prohibition.
 - 2026-07-23 — Clarified that GitHub Pages content is prepared for local review but publication remains unauthorized.
@@ -28,6 +31,7 @@ All notable product, documentation, validation, release, and authority-boundary 
 
 ### Security
 
+- 2026-07-24 — Required accessibility evidence and review artifacts to use synthetic or minimized fixtures and treat screenshots, recordings, browser logs, and assistive-technology transcripts as potentially sensitive.
 - 2026-07-23 — Required real host reports to remain outside public Git, CI, issues, and documentation artifacts.
 - 2026-07-23 — Documented hostname, user/group, path, package, privilege, and persistence disclosure risks.
 - 2026-07-23 — Preserved read-only workflow permissions, exact-head checkout, pinned actions, local-only assets, and no OIDC or deployment authority.
@@ -36,6 +40,7 @@ All notable product, documentation, validation, release, and authority-boundary 
 
 ### Release
 
+- 2026-07-24 — Recorded that automated accessibility validation, rendered review, certification, publication, and release are separate gates; none is implied by successful exact-head CI.
 - 2026-07-23 — Recorded status `BLOCKED_PUBLICATION_NOT_AUTHORIZED`; no Pages publication, package release, remote execution, credentials, telemetry, report upload, or deployment is included.
 
 ## Historical baseline
