@@ -15,6 +15,7 @@ REQUIRED_DOCS = [
     DOCS / "developer-guide.md",
     DOCS / "report-schema.md",
     DOCS / "security-and-evidence.md",
+    DOCS / "accessibility-and-review-evidence.md",
     DOCS / "guide.html",
     ROOT / "taskchain.md",
     ROOT / "punchlist.md",
@@ -107,12 +108,42 @@ class DocumentationTests(unittest.TestCase):
         self.assertIn("```mermaid", text)
         self.assertIn("**Equivalent prose:**", text)
 
+    def test_accessibility_protocol_is_bounded_and_complete(self):
+        text = (DOCS / "accessibility-and-review-evidence.md").read_text(encoding="utf-8")
+        for marker in (
+            "DOCUMENTED_NOT_CERTIFIED",
+            "NOT_REVIEWED",
+            "PARTIAL",
+            "PASS",
+            "FAIL",
+            "BLOCKED",
+            "UNKNOWN",
+            "SUPERSEDED",
+            "WITHDRAWN",
+            "CORRECTED",
+            "200%",
+            "400%",
+            "screen-reader",
+            "prefers-reduced-motion",
+            "accessibility_certification: denied",
+            "pages_publication: denied",
+            "collector_execution: denied",
+            "remediation: denied",
+            "release: denied",
+            "019-Q",
+        ):
+            self.assertIn(marker, text)
+        self.assertIn("```mermaid", text)
+        self.assertIn("**Equivalent prose:**", text)
+        self.assertIn("33db861320c29e71059ec390cbdafe04c8f8793d", text)
+
     def test_planning_status_and_schema_are_aligned(self):
         release = (ROOT / "release.md").read_text(encoding="utf-8")
         self.assertIn("BLOCKED_PUBLICATION_NOT_AUTHORIZED", release)
         for path in (ROOT / "README.md", ROOT / "taskchain.md", ROOT / "punchlist.md", ROOT / "release.md", ROOT / "changelog.md"):
             text = path.read_text(encoding="utf-8")
             self.assertIn("publication", text.lower(), path)
+            self.assertIn("DOCUMENTED_NOT_CERTIFIED", text, path)
         for path in (ROOT / "README.md", ROOT / "taskchain.md", ROOT / "release.md", DOCS / "report-schema.md"):
             self.assertIn("1.0", path.read_text(encoding="utf-8"), path)
 
@@ -136,11 +167,12 @@ class DocumentationTests(unittest.TestCase):
         self.assertNotIn("github.event.pull_request.number || github.ref", workflow)
         self.assertNotIn("cancel-in-progress: true", workflow)
 
-    def test_skill_mapping_and_gap_are_recorded(self):
+    def test_skill_mapping_and_gaps_are_recorded(self):
         text = (ROOT / "taskchain.md").read_text(encoding="utf-8")
-        for category in ("CAT-011", "CAT-012", "CAT-017", "CAT-019", "CAT-031", "CAT-052", "CAT-054", "CAT-056", "CAT-064"):
+        for category in ("CAT-011", "CAT-012", "CAT-017", "CAT-018", "CAT-019", "CAT-031", "CAT-040", "CAT-052", "CAT-054", "CAT-056", "CAT-064"):
             self.assertIn(category, text)
         self.assertIn("056-F", text)
+        self.assertIn("019-Q", text)
         self.assertIn("non-authoritative", text)
 
 
