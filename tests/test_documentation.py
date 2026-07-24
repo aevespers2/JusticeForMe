@@ -126,6 +126,16 @@ class DocumentationTests(unittest.TestCase):
         for action in uses:
             self.assertFalse(action.startswith(prohibited_actions), action)
 
+    def test_each_pull_request_head_retains_its_own_evidence_generation(self):
+        workflow = (ROOT / ".github/workflows/pages.yml").read_text(encoding="utf-8")
+        self.assertIn(
+            "group: justiceforme-documentation-${{ github.event.pull_request.head.sha }}",
+            workflow,
+        )
+        self.assertIn("cancel-in-progress: false", workflow)
+        self.assertNotIn("github.event.pull_request.number || github.ref", workflow)
+        self.assertNotIn("cancel-in-progress: true", workflow)
+
     def test_skill_mapping_and_gap_are_recorded(self):
         text = (ROOT / "taskchain.md").read_text(encoding="utf-8")
         for category in ("CAT-011", "CAT-012", "CAT-017", "CAT-019", "CAT-031", "CAT-052", "CAT-054", "CAT-056", "CAT-064"):

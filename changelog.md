@@ -19,6 +19,7 @@ All notable product, documentation, validation, release, and authority-boundary 
 
 ### Changed
 
+- 2026-07-24 — Bound pull-request validation concurrency to each immutable submitted head, disabled cancellation of superseded runs, and added regression coverage so every reviewed generation can retain terminal evidence.
 - 2026-07-23 — Expanded README navigation and repository layout to include the complete documentation and planning surface.
 - 2026-07-23 — Expanded pull-request validation to cover documentation links, HTML navigation, planning alignment, diagram prose alternatives, and the unchanged deployment prohibition.
 - 2026-07-23 — Clarified that GitHub Pages content is prepared for local review but publication remains unauthorized.
