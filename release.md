@@ -4,7 +4,9 @@
 
 Status: `BLOCKED_PUBLICATION_NOT_AUTHORIZED`
 
-JusticeForMe is currently a local-use, documentation-and-validation candidate. The collector and dashboard may be reviewed from source, but GitHub Pages publication, packaged distribution, remote execution, telemetry, report upload, production deployment, credentials, OIDC, and automated incident-response authority are excluded.
+Accessibility status: `DOCUMENTED_NOT_CERTIFIED`
+
+JusticeForMe is currently a local-use, documentation-and-validation candidate. The collector and dashboard may be reviewed from source, but GitHub Pages publication, packaged distribution, remote execution, telemetry, report upload, production deployment, credentials, OIDC, automated incident-response authority, and accessibility certification are excluded.
 
 ## Candidate scope
 
@@ -13,7 +15,7 @@ The bounded documentation candidate includes:
 - read-only collector source;
 - local dependency-free dashboard;
 - report schema `1.0` documentation;
-- project overview, architecture, onboarding, developer, security, and evidence guidance;
+- project overview, architecture, onboarding, developer, security, evidence, and accessibility-review guidance;
 - task chain, punch list, release plan, and changelog;
 - exact-head pull-request validation; and
 - retained deterministic validation evidence.
@@ -25,14 +27,16 @@ The bounded documentation candidate includes:
 | Scope | REVIEW | Local read-only auditing and human interpretation only |
 | Documentation | REVIEW | All reader and maintainer routes are complete and consistent |
 | Links and navigation | PENDING | Internal Markdown and HTML routes pass at the final exact head |
-| Accessibility | PENDING | Semantic structure, labels, keyboard access, focus, non-color meaning, and prose-equivalent diagrams pass |
+| Automated accessibility structure | REVIEW | Semantic structure, labels, local assets, state vocabulary, diagram alternatives, and certification denials pass exact-head validation |
+| Rendered accessibility review | BLOCKED | Exact non-deploying artifact, approved reviewer/scope, keyboard, screen-reader, contrast, 200%/400% reflow, cognitive-access, and error-recovery evidence are retained |
+| Accessibility certification | BLOCKED | Approved standard, scope, authority, correction policy, and explicit human disposition are absent |
 | Report schema | REVIEW | Schema `1.0` fields, types, compatibility, and rejection behavior are documented |
 | Synthetic tests | INCOMPLETE | Valid and hostile report fixtures are still required |
 | Security and privacy | REVIEW | Real reports remain local and excluded from public Git, CI, and issues |
-| Evidence provenance | PENDING | Exact source, deterministic hashes, artifact identity, and expiration are retained |
+| Evidence provenance | PENDING | Exact source, deterministic hashes, artifact identity, expiration, reviewer environment, limitations, and supersession links are retained |
 | Workflow least privilege | REVIEW | `contents: read`, pinned actions, exact-head checkout, and no deployment authority |
 | License | BLOCKED | No license decision has been recorded |
-| Ownership | BLOCKED | Documentation, accessibility, schema, security, release, and correction owners are unnamed |
+| Ownership | BLOCKED | Documentation, accessibility, schema, security, release, correction, and publication owners are unnamed |
 | Publication | BLOCKED | Explicit approval and a separately reviewed deployment design are absent |
 
 ## Artifact requirements
@@ -43,24 +47,29 @@ A review-ready documentation candidate should retain:
 - workflow run and attempt;
 - collector and JavaScript syntax results;
 - HTML and documentation-route results;
+- accessibility-protocol marker results;
 - planning-alignment results;
 - action and tool versions;
 - SHA-256 identities for validated inputs; and
 - artifact expiration.
+
+A later rendered accessibility record must separately bind the exact rendered artifact, browser, operating system, viewport, zoom, input method, assistive technology, reviewer, procedures, results, limitations, corrections, and supersession state.
 
 Validation evidence is not operational evidence from an audited host and must not include real reports.
 
 ## Versioning
 
 - Current report interface: `1.0`.
+- Accessibility review protocol: `justiceforme.accessibility-review.v1` documentation candidate.
 - Documentation changes remain unreleased until an explicit release decision.
 - Incompatible report changes require a new schema version and migration/rollback guidance.
 - Dashboard threshold changes require provenance, calibration evidence, and a changelog entry.
+- Rendering or interaction changes invalidate affected accessibility evidence until impact analysis and renewed review complete.
 
 ## Rollback criteria
 
-Rollback is required when a candidate introduces report disclosure, state-changing collection, unsupported schema reinterpretation, inaccessible controls, broken routes, misleading forensic claims, workflow write authority, unpinned external execution, or documentation contradictions. The rollback must restore a supported prior state or explicitly mark the affected guidance and report generation withdrawn.
+Rollback is required when a candidate introduces report disclosure, state-changing collection, unsupported schema reinterpretation, inaccessible controls, broken routes, misleading forensic or accessibility claims, workflow write authority, unpinned external execution, or documentation contradictions. The rollback must restore a supported prior state or explicitly mark the affected guidance and evidence generation withdrawn, superseded, blocked, or corrected.
 
 ## Publication rule
 
-A passing workflow does not authorize Pages publication. Publication requires a separate review of privacy, sensitive-data risk, licensing, accessibility, security headers and dependencies, correction and withdrawal propagation, named ownership, release approval, and resulting deployed-state verification.
+A passing workflow does not authorize Pages publication or accessibility certification. Publication requires a separate review of privacy, sensitive-data risk, licensing, rendered accessibility, security headers and dependencies, correction and withdrawal propagation, named ownership, release approval, and resulting deployed-state verification.
