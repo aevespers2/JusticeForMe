@@ -1,5 +1,7 @@
 # Punch List
 
+Accessibility status: `DOCUMENTED_NOT_CERTIFIED`.
+
 ## P0 documentation milestone
 
 - [x] Clarify current collector and dashboard purpose.
